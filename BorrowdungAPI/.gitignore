@@ -396,3 +396,9 @@ appsettings.Development.json
 *.db-wal
 *.sqlite
 *.sqlite3
+
+# Claude Code temporary files
+tmpclaude-*
+test.txt
+*.sh
+GITHUB_PROJECT_BOARD.md

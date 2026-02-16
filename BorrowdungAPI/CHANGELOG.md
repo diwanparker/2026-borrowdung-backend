@@ -15,114 +15,134 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial project setup with ASP.NET Core 8.0
 - Entity Framework Core 8.0 configuration with SQLite support
 - Database context with ApplicationDbContext
-- JWT Bearer Authentication implementation
-- Role-based authorization (Admin & User roles)
+- JSON serialization with ReferenceHandler.IgnoreCycles to prevent circular references
 - CORS configuration for cross-origin requests
-- Swagger/OpenAPI documentation with JWT authorization support
-
-#### Authentication & Security
-- JWT token generation using HS256 algorithm
-- BCrypt password hashing for secure password storage
-- Token expiry configuration (default: 24 hours)
-- JWT claims: Sub, Email, NameIdentifier, Name, Role, FullName
-- Bearer token authentication middleware
-- Authorization policies: AdminOnly, UserOnly, AllUsers
+- Swagger/OpenAPI documentation
+- Logging and error handling
 
 #### Database & Migrations
-- Initial database migration with User entity
-- Database seeding with default admin account:
-  - Username: `admin`
-  - Email: `admin@borrowdung.com`
-  - Password: `Admin@123` (BCrypt hashed)
-  - Role: Admin
-- Soft delete implementation for User entity
-- Unique constraints on Username and Email fields
+- Initial database migration with Room and Booking entities
+- Database seeding with sample data:
+  - 3 sample rooms (Ruang Seminar A, Ruang Rapat B, Lab Komputer 1)
+  - 2 sample bookings (1 approved, 1 pending)
+- Soft delete implementation for Room and Booking entities
+- Indexes for performance optimization:
+  - Index on Room.Name
+  - Index on Booking.Status
+  - Index on Booking.BookerEmail
+  - Index on Booking.RoomId (foreign key)
 
 #### Entities
-- **User Entity** with fields:
-  - Id, Username, Email, Password (BCrypt hashed)
-  - FullName, PhoneNumber, Role (Admin/User enum)
+- **Room Entity** with fields:
+  - Id, Name, Location, Capacity, Description, Status
   - Timestamps: CreatedAt, UpdatedAt, DeletedAt
+  - Navigation property: Bookings (collection)
+
+- **Booking Entity** with fields:
+  - Id, RoomId, BookerName, BookerEmail, BookerPhone
+  - Purpose, StartTime, EndTime, Status, RejectionReason
+  - Timestamps: CreatedAt, UpdatedAt, DeletedAt
+  - Navigation property: Room
+
+- **BookingStatus Enum**:
+  - Pending = 0 (default)
+  - Approved = 1
+  - Rejected = 2
 
 #### DTOs (Data Transfer Objects)
-- **Auth DTOs**:
-  - RegisterRequest - User registration with password confirmation
-  - LoginRequest - Login dengan username atau email
-  - LoginResponse - JWT token dengan user info
-  - UserResponse - User data tanpa password
-- **User Management DTOs**:
-  - CreateUserRequest - Admin creates user dengan role selection
-  - UpdateUserRequest - Update user profile
-  - ChangePasswordRequest - Password change dengan current password verification
+- **Room DTOs**:
+  - CreateRoomRequest - Create new room with validation
+  - UpdateRoomRequest - Update room details
+- **Booking DTOs**:
+  - CreateBookingRequest - Create booking with full details
+  - UpdateBookingRequest - Update booking details (pending only)
+  - UpdateBookingStatusRequest - Approve/reject with optional reason
 - Input validation using Data Annotations
 - Email format validation
-- Password strength validation (min 6 chars, requires uppercase, lowercase, digit, special char)
-- Password confirmation matching
-
-#### Services
-- **JwtService** - JWT token generation and management:
-  - Generate JWT tokens with custom claims
-  - Configurable token expiry
-  - Token validation parameters
+- Required field validation
+- String length validation
 
 #### API Controllers
-- **AuthController** - Public authentication endpoints:
-  - POST /api/Auth/Register - User registration (default role: User)
-  - POST /api/Auth/Login - Login dengan username/email, returns JWT token
-  - GET /api/Auth/Profile - Get current user profile (Authenticated)
-  - PUT /api/Auth/Profile - Update own profile (Authenticated)
-  - PUT /api/Auth/ChangePassword - Change password (Authenticated)
+- **RoomController** - Room management endpoints:
+  - GET /api/Room - List rooms with search, status filter, pagination
+  - GET /api/Room/{id} - Get room with booking details
+  - POST /api/Room - Create new room
+  - PUT /api/Room/{id} - Update room
+  - DELETE /api/Room/{id} - Soft delete room
 
-- **UserController** - Admin-only user management:
-  - GET /api/User - List users dengan pagination, search, role filter
-  - GET /api/User/{id} - Get user by ID
-  - POST /api/User - Create user dengan role selection
-  - PUT /api/User/{id} - Update user
-  - DELETE /api/User/{id} - Soft delete user (dengan self-deletion prevention)
+- **BookingController** - Booking management endpoints:
+  - GET /api/Booking - List bookings with search, filters, pagination
+  - GET /api/Booking/{id} - Get booking details
+  - POST /api/Booking - Create booking with conflict detection
+  - PUT /api/Booking/{id} - Update booking (pending only)
+  - PUT /api/Booking/{id}/status - Approve/reject booking
+  - DELETE /api/Booking/{id} - Soft delete booking
+  - GET /api/Booking/history - Get booking history with filters
 
 #### Features
+- **Conflict Detection**:
+  - Prevents double-booking of rooms
+  - Checks overlapping time periods
+  - Only approved bookings block time slots
+  - Pending bookings don't prevent new bookings
+
+- **Status Management Workflow**:
+  - New bookings created as Pending
+  - Can be approved or rejected
+  - Rejection reason required when rejecting
+  - Status updates tracked with timestamps
+
 - **Pagination Support**:
-  - Configurable page size dan page number
+  - Configurable page size and page number
   - Default: page=1, pageSize=10
+  - Pagination headers: X-Total-Count, X-Page, X-Page-Size
+
 - **Search Functionality**:
-  - Search by username, email, atau fullName
+  - Rooms: Search by name, location, description
+  - Bookings: Search by booker name, email, purpose, room name
+
 - **Filtering Options**:
-  - Filter by role (Admin/User)
-- **Authorization**:
-  - Admin dapat akses semua endpoints
-  - User hanya dapat akses profile sendiri
-  - Admin tidak bisa delete diri sendiri
+  - Rooms: Filter by status (Tersedia/Tidak Tersedia)
+  - Bookings: Filter by status (Pending/Approved/Rejected), roomId
+
+- **Business Rules**:
+  - Only pending bookings can be modified
+  - Approved/rejected bookings are locked
+  - Soft delete preserves data integrity
+  - Foreign key constraint prevents room deletion with active bookings
+
 - **Error Handling**:
-  - Proper HTTP status codes (200, 201, 400, 401, 403, 404)
-  - Descriptive error messages
+  - Proper HTTP status codes (200, 201, 400, 404, 500)
+  - Descriptive error messages in Indonesian
   - Exception logging
+  - Validation error responses
+
 - **Validation**:
-  - Duplicate username prevention
-  - Duplicate email prevention
-  - Password match validation
-  - Current password verification saat change password
-  - Self-deletion prevention untuk admin
+  - Email format validation
+  - Required field validation
+  - Time period validation (start < end)
+  - Room availability validation
+  - Booking conflict validation
 
 #### Documentation
 - Comprehensive README.md with:
-  - Project description dan features
-  - Tech stack information (SQLite, JWT, BCrypt)
+  - Project description and features
+  - Tech stack information (ASP.NET Core 8.0, EF Core, SQLite)
   - Installation instructions
-  - Default admin credentials warning
-  - JWT authentication guide
+  - Database schema documentation
   - API endpoints documentation
-  - Example requests dengan authentication
-  - Database schema
+  - Example requests and responses
+  - Business rules explanation
   - Testing guide (Swagger UI, cURL, Postman)
-  - Contributing guidelines dengan Conventional Commits
+  - Contributing guidelines with Conventional Commits
 - .gitignore for .NET projects
 - CHANGELOG.md following Keep a Changelog format
 
 #### Development Tools
 - Git repository initialization
 - Environment configuration via appsettings.json
-- Swagger UI untuk interactive API testing
-- JWT token testing via Swagger authorization
+- Swagger UI for interactive API testing
+- Database file: BorrowdungDB.db (SQLite)
 
 ### Changed
 - N/A (Initial release)
@@ -134,24 +154,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - N/A (Initial release)
 
 ### Fixed
-- N/A (Initial release)
+- JSON circular reference issue resolved with ReferenceHandler.IgnoreCycles
+- Header addition warnings (ASP0019) - using Response.Headers.Add for pagination headers
 
 ### Security
-- JWT Bearer token authentication untuk semua protected endpoints
-- BCrypt password hashing dengan automatic salting
-- Password strength requirements
-- Username dan email uniqueness validation
-- Role-based authorization dengan Admin dan User roles
-- Soft delete untuk preserve data integrity
-- Current password verification sebelum change password
-- Input validation untuk prevent malformed data
-- Self-deletion prevention untuk admin users
+- Input validation to prevent malformed data
+- Email format validation
+- SQL injection prevention via EF Core parameterized queries
+- Soft delete for data preservation and audit trail
+- Foreign key constraints for data integrity
 
 ---
 
 ## Version History
 
-- **v1.0.0** (2026-02-17) - Initial release dengan JWT authentication, user registration, dan role-based authorization
+- **v1.0.0** (2026-02-17) - Initial release with Room Booking Management System
 
 ---
 
@@ -164,6 +181,25 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 3. **PATCH** version when you make backward compatible bug fixes
 
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
+
+---
+
+## Migration Notes
+
+This is the initial release. No migration required.
+
+---
+
+## Features Roadmap
+
+Future enhancements may include:
+- User authentication and authorization
+- Email notifications for booking approvals/rejections
+- Calendar view integration
+- Booking cancellation workflow
+- Room equipment/facilities tracking
+- Booking statistics and reports
+- Mobile app integration
 
 [Unreleased]: https://github.com/diwanparker/2026-borrowdung-backend/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/diwanparker/2026-borrowdung-backend/releases/tag/v1.0.0

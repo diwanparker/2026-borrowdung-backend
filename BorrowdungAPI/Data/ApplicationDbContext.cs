@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using BorrowdungAPI.Models.Entities;
+using BorrowdungAPI.Models.Enums;
 
 namespace BorrowdungAPI.Data
 {
@@ -10,20 +11,29 @@ namespace BorrowdungAPI.Data
         {
         }
 
-        public DbSet<User> Users { get; set; }
+        public DbSet<Room> Rooms { get; set; }
+        public DbSet<Booking> Bookings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure indexes for better query performance
-            modelBuilder.Entity<User>()
-                .HasIndex(u => u.Username)
-                .IsUnique();
+            // Configure Room entity
+            modelBuilder.Entity<Room>()
+                .HasIndex(r => r.Name);
 
-            modelBuilder.Entity<User>()
-                .HasIndex(u => u.Email)
-                .IsUnique();
+            // Configure Booking entity
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Room)
+                .WithMany(r => r.Bookings)
+                .HasForeignKey(b => b.RoomId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Booking>()
+                .HasIndex(b => b.Status);
+
+            modelBuilder.Entity<Booking>()
+                .HasIndex(b => b.BookerEmail);
 
             // Seed initial data
             SeedData(modelBuilder);
@@ -31,20 +41,67 @@ namespace BorrowdungAPI.Data
 
         private void SeedData(ModelBuilder modelBuilder)
         {
-            // Seed default admin user
-            var adminPassword = BCrypt.Net.BCrypt.HashPassword("Admin@123");
-
-            modelBuilder.Entity<User>().HasData(
-                new User
+            // Seed sample rooms
+            modelBuilder.Entity<Room>().HasData(
+                new Room
                 {
                     Id = 1,
-                    Username = "admin",
-                    Email = "admin@borrowdung.com",
-                    Password = adminPassword,
-                    FullName = "System Administrator",
-                    PhoneNumber = "081234567890",
-                    Role = Models.Enums.UserRole.Admin,
+                    Name = "Ruang Seminar A",
+                    Location = "Gedung A Lantai 1",
+                    Capacity = 100,
+                    Description = "Ruang seminar besar dengan proyektor dan sound system",
+                    Status = "Tersedia",
                     CreatedAt = new DateTime(2026, 2, 17, 0, 0, 0, DateTimeKind.Utc)
+                },
+                new Room
+                {
+                    Id = 2,
+                    Name = "Ruang Rapat B",
+                    Location = "Gedung B Lantai 2",
+                    Capacity = 30,
+                    Description = "Ruang rapat dengan AC dan whiteboard",
+                    Status = "Tersedia",
+                    CreatedAt = new DateTime(2026, 2, 17, 0, 0, 0, DateTimeKind.Utc)
+                },
+                new Room
+                {
+                    Id = 3,
+                    Name = "Lab Komputer 1",
+                    Location = "Gedung C Lantai 3",
+                    Capacity = 40,
+                    Description = "Laboratorium komputer dengan 40 unit PC",
+                    Status = "Tersedia",
+                    CreatedAt = new DateTime(2026, 2, 17, 0, 0, 0, DateTimeKind.Utc)
+                }
+            );
+
+            // Seed sample bookings
+            modelBuilder.Entity<Booking>().HasData(
+                new Booking
+                {
+                    Id = 1,
+                    RoomId = 1,
+                    BookerName = "Budi Santoso",
+                    BookerEmail = "budi@pens.ac.id",
+                    BookerPhone = "081234567890",
+                    Purpose = "Seminar Teknologi Informasi",
+                    StartTime = new DateTime(2026, 2, 20, 9, 0, 0, DateTimeKind.Utc),
+                    EndTime = new DateTime(2026, 2, 20, 12, 0, 0, DateTimeKind.Utc),
+                    Status = BookingStatus.Approved,
+                    CreatedAt = new DateTime(2026, 2, 17, 1, 0, 0, DateTimeKind.Utc)
+                },
+                new Booking
+                {
+                    Id = 2,
+                    RoomId = 2,
+                    BookerName = "Siti Nurhaliza",
+                    BookerEmail = "siti@pens.ac.id",
+                    BookerPhone = "081234567891",
+                    Purpose = "Rapat koordinasi proyek",
+                    StartTime = new DateTime(2026, 2, 21, 13, 0, 0, DateTimeKind.Utc),
+                    EndTime = new DateTime(2026, 2, 21, 15, 0, 0, DateTimeKind.Utc),
+                    Status = BookingStatus.Pending,
+                    CreatedAt = new DateTime(2026, 2, 17, 2, 0, 0, DateTimeKind.Utc)
                 }
             );
         }

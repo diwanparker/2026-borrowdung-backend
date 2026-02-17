@@ -1,0 +1,10 @@
+# Claude Code temporary files
+tmpclaude-*
+test.txt
+*.sh
+GITHUB_PROJECT_BOARD.md
+
+# Database
+*.db
+*.db-shm
+*.db-wal

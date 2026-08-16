@@ -1,10 +1,37 @@
-# Claude Code temporary files
-tmpclaude-*
-test.txt
-*.sh
-GITHUB_PROJECT_BOARD.md
+# Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
 
 # Database
 *.db
 *.db-shm
 *.db-wal
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio / VS Code
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.ide/
+
+# Environment / Secrets
+appsettings.Development.json
+appsettings.Local.json
+*.local.json
+
+# Temporary files
+tmpclaude-*
+test.txt
+*.sh
+GITHUB_PROJECT_BOARD.md
